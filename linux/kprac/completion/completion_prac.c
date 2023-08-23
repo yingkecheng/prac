@@ -1,0 +1,43 @@
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/completion.h>
+#include <linux/delay.h>
+#include <linux/kthread.h>
+
+static struct task_struct *task;
+static DECLARE_COMPLETION(on_complete);
+
+static int completion_threadfn(void *data)
+{
+    printk(KERN_INFO "Waiting for completion...\n");
+    msleep(5000);
+    complete(&on_complete);
+    printk(KERN_INFO "Completed!\n");
+
+    return 0;
+}
+
+static int __init completion_prac_init(void)
+{
+    task = kthread_run(completion_threadfn, NULL, "task");
+    if (IS_ERR(task)) {
+        printk(KERN_ERR "Failed to create kernel thread\n");
+        return PTR_ERR(task);
+    }
+
+    wait_for_completion(&on_complete);
+    printk(KERN_INFO "Module initialization completed after waiting for thread\n");
+
+    return 0;
+}
+
+static void __exit completion_prac_exit(void)
+{
+    printk(KERN_INFO "Exiting completion prac module\n");
+}
+
+module_init(completion_prac_init);
+module_exit(completion_prac_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Completion prac module");
